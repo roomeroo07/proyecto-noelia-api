@@ -116,7 +116,7 @@ export const createContacto = async (req: Request, res: Response): Promise<void>
       email_entrevista_presencial, email_candidatura_desestimada,
       disponibilidad_horaria, informacion, descripcion_perfil,
       formacion, experiencia, puesto_id, centro_id, estado_id,
-      fecha_incorporacion, fecha_baja, motivo_baja, fuente_reclutamiento, referenciado_por
+      fecha_incorporacion, fecha_baja, motivo_baja, fuente_reclutamiento, referenciado_por, historial
     } = req.body;
 
     const [result]: any = await pool.query(
@@ -126,15 +126,15 @@ export const createContacto = async (req: Request, res: Response): Promise<void>
         email_entrevista_presencial, email_candidatura_desestimada,
         disponibilidad_horaria, informacion, descripcion_perfil,
         formacion, experiencia, puesto_id, centro_id, estado_id,
-        fecha_incorporacion, fecha_baja, motivo_baja, fuente_reclutamiento, referenciado_por
-      ) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`,
+        fecha_incorporacion, fecha_baja, motivo_baja, fuente_reclutamiento, referenciado_por, historial
+      ) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`,
       [
         n(nombre), n(tipo_contacto), n(fecha_nacimiento), n(telefono), n(residencia),
         n(email), n(carnet_conducir), n(fecha_primer_contacto), n(fecha_entrevista),
         email_entrevista_presencial ?? 0, email_candidatura_desestimada ?? 0,
         n(disponibilidad_horaria), n(informacion), n(descripcion_perfil),
         n(formacion), n(experiencia), n(puesto_id), n(centro_id), n(estado_id),
-        n(fecha_incorporacion), n(fecha_baja), n(motivo_baja), n(fuente_reclutamiento), n(referenciado_por)
+        n(fecha_incorporacion), n(fecha_baja), n(motivo_baja), n(fuente_reclutamiento), n(referenciado_por), n(historial)
       ]
     );
 
@@ -187,7 +187,7 @@ export const updateContacto = async (req: Request, res: Response): Promise<void>
       email_entrevista_presencial, email_candidatura_desestimada,
       disponibilidad_horaria, informacion, descripcion_perfil,
       formacion, experiencia, puesto_id, centro_id, estado_id,
-      fecha_incorporacion, fecha_baja, motivo_baja, fuente_reclutamiento, referenciado_por
+      fecha_incorporacion, fecha_baja, motivo_baja, fuente_reclutamiento, referenciado_por, historial
     } = req.body;
 
     // Obtener datos anteriores para comparar y registrar historial
@@ -205,7 +205,7 @@ export const updateContacto = async (req: Request, res: Response): Promise<void>
         email_entrevista_presencial=?, email_candidatura_desestimada=?,
         disponibilidad_horaria=?, informacion=?, descripcion_perfil=?,
         formacion=?, experiencia=?, puesto_id=?, centro_id=?, estado_id=?,
-        fecha_incorporacion=?, fecha_baja=?, motivo_baja=?, fuente_reclutamiento=?, referenciado_por=?
+        fecha_incorporacion=?, fecha_baja=?, motivo_baja=?, fuente_reclutamiento=?, referenciado_por=?, historial=?
       WHERE id=?`,
       [
         n(nombre), n(tipo_contacto), n(fecha_nacimiento), n(telefono), n(residencia),
@@ -213,7 +213,7 @@ export const updateContacto = async (req: Request, res: Response): Promise<void>
         email_entrevista_presencial ?? 0, email_candidatura_desestimada ?? 0,
         n(disponibilidad_horaria), n(informacion), n(descripcion_perfil),
         n(formacion), n(experiencia), n(puesto_id), n(centro_id), n(estado_id),
-        n(fecha_incorporacion), n(fecha_baja), n(motivo_baja), n(fuente_reclutamiento), n(referenciado_por),
+        n(fecha_incorporacion), n(fecha_baja), n(motivo_baja), n(fuente_reclutamiento), n(referenciado_por), n(historial),
         id
       ]
     );
@@ -249,6 +249,7 @@ export const updateContacto = async (req: Request, res: Response): Promise<void>
       { etiqueta: 'Motivo baja',           valorAntes: ant?.motivo_baja,               valorDespues: n(motivo_baja) },
       { etiqueta: 'Fuente reclutamiento',  valorAntes: ant?.fuente_reclutamiento,      valorDespues: n(fuente_reclutamiento) },
       { etiqueta: 'Referenciado por',      valorAntes: ant?.referenciado_por,          valorDespues: n(referenciado_por) },
+      { etiqueta: 'Historial',             valorAntes: ant?.historial,                 valorDespues: n(historial) },
     ];
 
     const cambios: any[] = [];
