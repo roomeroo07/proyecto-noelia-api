@@ -116,7 +116,8 @@ export const createContacto = async (req: Request, res: Response): Promise<void>
       email_entrevista_presencial, email_candidatura_desestimada,
       disponibilidad_horaria, informacion, descripcion_perfil,
       formacion, experiencia, puesto_id, centro_id, estado_id,
-      fecha_incorporacion, fecha_baja, motivo_baja, fuente_reclutamiento, referenciado_por, historial
+      fecha_incorporacion, fecha_baja, motivo_baja, fuente_reclutamiento,
+      referenciado_por, historial
     } = req.body;
 
     const [result]: any = await pool.query(
@@ -126,7 +127,8 @@ export const createContacto = async (req: Request, res: Response): Promise<void>
         email_entrevista_presencial, email_candidatura_desestimada,
         disponibilidad_horaria, informacion, descripcion_perfil,
         formacion, experiencia, puesto_id, centro_id, estado_id,
-        fecha_incorporacion, fecha_baja, motivo_baja, fuente_reclutamiento, referenciado_por, historial
+        fecha_incorporacion, fecha_baja, motivo_baja, fuente_reclutamiento,
+        referenciado_por, historial
       ) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`,
       [
         n(nombre), n(tipo_contacto), n(fecha_nacimiento), n(telefono), n(residencia),
@@ -134,7 +136,8 @@ export const createContacto = async (req: Request, res: Response): Promise<void>
         email_entrevista_presencial ?? 0, email_candidatura_desestimada ?? 0,
         n(disponibilidad_horaria), n(informacion), n(descripcion_perfil),
         n(formacion), n(experiencia), n(puesto_id), n(centro_id), n(estado_id),
-        n(fecha_incorporacion), n(fecha_baja), n(motivo_baja), n(fuente_reclutamiento), n(referenciado_por), n(historial)
+        n(fecha_incorporacion), n(fecha_baja), n(motivo_baja), n(fuente_reclutamiento),
+        n(referenciado_por), n(historial)
       ]
     );
 
@@ -173,12 +176,17 @@ export const createContacto = async (req: Request, res: Response): Promise<void>
 // PUT /api/contactos/:id
 // Actualiza un contacto existente
 // Registra en historial los campos que cambian
-// Si cambia a INCORPORADO/A y no tiene evaluación, la crea
-// Sincroniza centro_id, fecha_incorporacion, fecha_baja y motivo_baja con evaluación
 // ============================================================
 export const updateContacto = async (req: Request, res: Response): Promise<void> => {
   try {
     const n = (v: any) => (v === '' || v === undefined) ? null : v;
+
+    // Función para comparar valores normalizando null y vacío
+    const iguales = (a: any, b: any): boolean => {
+      const norm = (v: any) => (v === null || v === undefined || v === '') ? '' : String(v).trim();
+      return norm(a) === norm(b);
+    };
+
     const { id } = req.params;
 
     const {
@@ -187,15 +195,16 @@ export const updateContacto = async (req: Request, res: Response): Promise<void>
       email_entrevista_presencial, email_candidatura_desestimada,
       disponibilidad_horaria, informacion, descripcion_perfil,
       formacion, experiencia, puesto_id, centro_id, estado_id,
-      fecha_incorporacion, fecha_baja, motivo_baja, fuente_reclutamiento, referenciado_por, historial
+      fecha_incorporacion, fecha_baja, motivo_baja, fuente_reclutamiento,
+      referenciado_por, historial
     } = req.body;
 
-    // Obtener datos anteriores para comparar y registrar historial
-    const [anteriorRows]: any = await pool.query(
-      'SELECT * FROM v_contacto WHERE id = ?', [id]
+    // Obtener datos anteriores desde la tabla directa
+    const [anteriorDirecto]: any = await pool.query(
+      'SELECT * FROM contacto WHERE id = ?', [id]
     );
-    const anterior = anteriorRows[0];
-    const estadoAnteriorId = anterior?.estado_id;
+    const ant = anteriorDirecto[0];
+    const estadoAnteriorId = ant?.estado_id;
 
     // Actualizar el contacto
     await pool.query(
@@ -205,7 +214,8 @@ export const updateContacto = async (req: Request, res: Response): Promise<void>
         email_entrevista_presencial=?, email_candidatura_desestimada=?,
         disponibilidad_horaria=?, informacion=?, descripcion_perfil=?,
         formacion=?, experiencia=?, puesto_id=?, centro_id=?, estado_id=?,
-        fecha_incorporacion=?, fecha_baja=?, motivo_baja=?, fuente_reclutamiento=?, referenciado_por=?, historial=?
+        fecha_incorporacion=?, fecha_baja=?, motivo_baja=?, fuente_reclutamiento=?,
+        referenciado_por=?, historial=?
       WHERE id=?`,
       [
         n(nombre), n(tipo_contacto), n(fecha_nacimiento), n(telefono), n(residencia),
@@ -213,55 +223,47 @@ export const updateContacto = async (req: Request, res: Response): Promise<void>
         email_entrevista_presencial ?? 0, email_candidatura_desestimada ?? 0,
         n(disponibilidad_horaria), n(informacion), n(descripcion_perfil),
         n(formacion), n(experiencia), n(puesto_id), n(centro_id), n(estado_id),
-        n(fecha_incorporacion), n(fecha_baja), n(motivo_baja), n(fuente_reclutamiento), n(referenciado_por), n(historial),
+        n(fecha_incorporacion), n(fecha_baja), n(motivo_baja), n(fuente_reclutamiento),
+        n(referenciado_por), n(historial),
         id
       ]
     );
-    
 
-   // Obtener datos anteriores completos desde la tabla directa (no la vista)
-    const [anteriorDirecto]: any = await pool.query(
-      'SELECT * FROM contacto WHERE id = ?', [id]
-    );
-    const ant = anteriorDirecto[0];
-
-    // Mapeo de todos los campos a rastrear con sus etiquetas
+    // Registrar cambios en historial
     const camposRastrear = [
-      { etiqueta: 'Nombre',                valorAntes: ant?.nombre,                    valorDespues: n(nombre) },
-      { etiqueta: 'Tipo contacto',         valorAntes: ant?.tipo_contacto,             valorDespues: n(tipo_contacto) },
-      { etiqueta: 'Fecha nacimiento',      valorAntes: ant?.fecha_nacimiento,          valorDespues: n(fecha_nacimiento) },
-      { etiqueta: 'Teléfono',              valorAntes: ant?.telefono,                  valorDespues: n(telefono) },
-      { etiqueta: 'Residencia',            valorAntes: ant?.residencia,                valorDespues: n(residencia) },
-      { etiqueta: 'Email',                 valorAntes: ant?.email,                     valorDespues: n(email) },
-      { etiqueta: 'Carnet conducir',       valorAntes: ant?.carnet_conducir,           valorDespues: n(carnet_conducir) },
-      { etiqueta: 'Fecha primer contacto', valorAntes: ant?.fecha_primer_contacto,     valorDespues: n(fecha_primer_contacto) },
-      { etiqueta: 'Fecha entrevista',      valorAntes: ant?.fecha_entrevista,          valorDespues: n(fecha_entrevista) },
-      { etiqueta: 'Disponibilidad',        valorAntes: ant?.disponibilidad_horaria,    valorDespues: n(disponibilidad_horaria) },
-      { etiqueta: 'Información',           valorAntes: ant?.informacion,               valorDespues: n(informacion) },
-      { etiqueta: 'Descripción perfil',    valorAntes: ant?.descripcion_perfil,        valorDespues: n(descripcion_perfil) },
-      { etiqueta: 'Formación',             valorAntes: ant?.formacion,                 valorDespues: n(formacion) },
-      { etiqueta: 'Experiencia',           valorAntes: ant?.experiencia,               valorDespues: n(experiencia) },
-      { etiqueta: 'Puesto',                valorAntes: String(ant?.puesto_id || ''),   valorDespues: String(n(puesto_id) || '') },
-      { etiqueta: 'Centro',                valorAntes: String(ant?.centro_id || ''),   valorDespues: String(n(centro_id) || '') },
-      { etiqueta: 'Estado',                valorAntes: String(ant?.estado_id || ''),   valorDespues: String(n(estado_id) || '') },
-      { etiqueta: 'Fecha incorporación',   valorAntes: ant?.fecha_incorporacion,       valorDespues: n(fecha_incorporacion) },
-      { etiqueta: 'Fecha baja',            valorAntes: ant?.fecha_baja,                valorDespues: n(fecha_baja) },
-      { etiqueta: 'Motivo baja',           valorAntes: ant?.motivo_baja,               valorDespues: n(motivo_baja) },
-      { etiqueta: 'Fuente reclutamiento',  valorAntes: ant?.fuente_reclutamiento,      valorDespues: n(fuente_reclutamiento) },
-      { etiqueta: 'Referenciado por',      valorAntes: ant?.referenciado_por,          valorDespues: n(referenciado_por) },
-      { etiqueta: 'Historial',             valorAntes: ant?.historial,                 valorDespues: n(historial) },
+      { etiqueta: 'Nombre',                valorAntes: ant?.nombre,                 valorDespues: n(nombre) },
+      { etiqueta: 'Tipo contacto',         valorAntes: ant?.tipo_contacto,          valorDespues: n(tipo_contacto) },
+      { etiqueta: 'Fecha nacimiento',      valorAntes: ant?.fecha_nacimiento,       valorDespues: n(fecha_nacimiento) },
+      { etiqueta: 'Teléfono',              valorAntes: ant?.telefono,               valorDespues: n(telefono) },
+      { etiqueta: 'Residencia',            valorAntes: ant?.residencia,             valorDespues: n(residencia) },
+      { etiqueta: 'Email',                 valorAntes: ant?.email,                  valorDespues: n(email) },
+      { etiqueta: 'Carnet conducir',       valorAntes: ant?.carnet_conducir,        valorDespues: n(carnet_conducir) },
+      { etiqueta: 'Fecha primer contacto', valorAntes: ant?.fecha_primer_contacto,  valorDespues: n(fecha_primer_contacto) },
+      { etiqueta: 'Fecha entrevista',      valorAntes: ant?.fecha_entrevista,       valorDespues: n(fecha_entrevista) },
+      { etiqueta: 'Disponibilidad',        valorAntes: ant?.disponibilidad_horaria, valorDespues: n(disponibilidad_horaria) },
+      { etiqueta: 'Información',           valorAntes: ant?.informacion,            valorDespues: n(informacion) },
+      { etiqueta: 'Descripción perfil',    valorAntes: ant?.descripcion_perfil,     valorDespues: n(descripcion_perfil) },
+      { etiqueta: 'Formación',             valorAntes: ant?.formacion,              valorDespues: n(formacion) },
+      { etiqueta: 'Experiencia',           valorAntes: ant?.experiencia,            valorDespues: n(experiencia) },
+      { etiqueta: 'Puesto',                valorAntes: String(ant?.puesto_id || ''), valorDespues: String(n(puesto_id) || '') },
+      { etiqueta: 'Centro',                valorAntes: String(ant?.centro_id || ''), valorDespues: String(n(centro_id) || '') },
+      { etiqueta: 'Estado',                valorAntes: String(ant?.estado_id || ''), valorDespues: String(n(estado_id) || '') },
+      { etiqueta: 'Fecha incorporación',   valorAntes: ant?.fecha_incorporacion,    valorDespues: n(fecha_incorporacion) },
+      { etiqueta: 'Fecha baja',            valorAntes: ant?.fecha_baja,             valorDespues: n(fecha_baja) },
+      { etiqueta: 'Motivo baja',           valorAntes: ant?.motivo_baja,            valorDespues: n(motivo_baja) },
+      { etiqueta: 'Fuente reclutamiento',  valorAntes: ant?.fuente_reclutamiento,   valorDespues: n(fuente_reclutamiento) },
+      { etiqueta: 'Referenciado por',      valorAntes: ant?.referenciado_por,       valorDespues: n(referenciado_por) },
+      { etiqueta: 'Historial',             valorAntes: ant?.historial,              valorDespues: n(historial) },
     ];
 
     const cambios: any[] = [];
     for (const { etiqueta, valorAntes, valorDespues } of camposRastrear) {
-      const antes = String(valorAntes || '').trim();
-      const despues = String(valorDespues || '').trim();
-      if (antes !== despues) {
+      if (!iguales(valorAntes, valorDespues)) {
+        const antes = valorAntes === null || valorAntes === undefined ? '' : String(valorAntes).trim();
+        const despues = valorDespues === null || valorDespues === undefined ? '' : String(valorDespues).trim();
         cambios.push([id, etiqueta, antes, despues]);
       }
     }
-    console.log('Campos anteriores:', ant);
-console.log('Cambios detectados:', cambios);
 
     if (cambios.length > 0) {
       await pool.query(
@@ -296,7 +298,7 @@ console.log('Cambios detectados:', cambios);
       }
     }
 
-    // Sincronizar centro_id, fecha_incorporacion, fecha_baja y motivo_baja con evaluación
+    // Sincronizar centro_id, fecha_incorporacion y fecha_baja con evaluación
     await pool.query(
       `UPDATE evaluacion 
        SET centro_id = ?, fecha_incorporacion = ?, fecha_baja = ?
@@ -313,15 +315,13 @@ console.log('Cambios detectados:', cambios);
 
 // ============================================================
 // DELETE /api/contactos/:id
-// Elimina un contacto y sus evaluaciones asociadas
+// Elimina un contacto y sus evaluaciones e historial asociados
 // ============================================================
 export const deleteContacto = async (req: Request, res: Response): Promise<void> => {
   try {
     const { id } = req.params;
-    // Primero eliminar evaluaciones e historial asociados
     await pool.query('DELETE FROM evaluacion WHERE contacto_id = ?', [id]);
     await pool.query('DELETE FROM historial WHERE contacto_id = ?', [id]);
-    // Luego eliminar el contacto
     await pool.query('DELETE FROM contacto WHERE id = ?', [id]);
     res.json({ mensaje: 'Contacto eliminado' });
   } catch (error) {
