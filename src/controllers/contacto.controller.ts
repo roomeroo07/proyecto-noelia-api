@@ -187,21 +187,44 @@ export const updateContacto = async (req: Request, res: Response): Promise<void>
       ]
     );
 
-    // Registrar cambios en historial
+   // Obtener datos anteriores completos desde la tabla directa (no la vista)
+    const [anteriorDirecto]: any = await pool.query(
+      'SELECT * FROM contacto WHERE id = ?', [id]
+    );
+    const ant = anteriorDirecto[0];
+
+    // Mapeo de todos los campos a rastrear con sus etiquetas
     const camposRastrear = [
-      { campo: 'estado_id',          etiqueta: 'Estado',               valorAntes: anterior?.estado,    valorDespues: n(estado_id) },
-      { campo: 'puesto_id',          etiqueta: 'Puesto',               valorAntes: anterior?.puesto,    valorDespues: n(puesto_id) },
-      { campo: 'centro_id',          etiqueta: 'Centro',               valorAntes: anterior?.centro,    valorDespues: n(centro_id) },
-      { campo: 'fecha_incorporacion', etiqueta: 'Fecha incorporación',  valorAntes: anterior?.fecha_incorporacion, valorDespues: n(fecha_incorporacion) },
-      { campo: 'fecha_baja',         etiqueta: 'Fecha baja',           valorAntes: anterior?.fecha_baja, valorDespues: n(fecha_baja) },
-      { campo: 'motivo_baja',        etiqueta: 'Motivo baja',          valorAntes: anterior?.motivo_baja, valorDespues: n(motivo_baja) },
-      { campo: 'tipo_contacto',      etiqueta: 'Tipo contacto',        valorAntes: anterior?.tipo_contacto, valorDespues: n(tipo_contacto) },
+      { etiqueta: 'Nombre',                valorAntes: ant?.nombre,                    valorDespues: n(nombre) },
+      { etiqueta: 'Tipo contacto',         valorAntes: ant?.tipo_contacto,             valorDespues: n(tipo_contacto) },
+      { etiqueta: 'Fecha nacimiento',      valorAntes: ant?.fecha_nacimiento,          valorDespues: n(fecha_nacimiento) },
+      { etiqueta: 'Teléfono',              valorAntes: ant?.telefono,                  valorDespues: n(telefono) },
+      { etiqueta: 'Residencia',            valorAntes: ant?.residencia,                valorDespues: n(residencia) },
+      { etiqueta: 'Email',                 valorAntes: ant?.email,                     valorDespues: n(email) },
+      { etiqueta: 'Carnet conducir',       valorAntes: ant?.carnet_conducir,           valorDespues: n(carnet_conducir) },
+      { etiqueta: 'Fecha primer contacto', valorAntes: ant?.fecha_primer_contacto,     valorDespues: n(fecha_primer_contacto) },
+      { etiqueta: 'Fecha entrevista',      valorAntes: ant?.fecha_entrevista,          valorDespues: n(fecha_entrevista) },
+      { etiqueta: 'Disponibilidad',        valorAntes: ant?.disponibilidad_horaria,    valorDespues: n(disponibilidad_horaria) },
+      { etiqueta: 'Información',           valorAntes: ant?.informacion,               valorDespues: n(informacion) },
+      { etiqueta: 'Descripción perfil',    valorAntes: ant?.descripcion_perfil,        valorDespues: n(descripcion_perfil) },
+      { etiqueta: 'Formación',             valorAntes: ant?.formacion,                 valorDespues: n(formacion) },
+      { etiqueta: 'Experiencia',           valorAntes: ant?.experiencia,               valorDespues: n(experiencia) },
+      { etiqueta: 'Puesto',                valorAntes: String(ant?.puesto_id || ''),   valorDespues: String(n(puesto_id) || '') },
+      { etiqueta: 'Centro',                valorAntes: String(ant?.centro_id || ''),   valorDespues: String(n(centro_id) || '') },
+      { etiqueta: 'Estado',                valorAntes: String(ant?.estado_id || ''),   valorDespues: String(n(estado_id) || '') },
+      { etiqueta: 'Fecha incorporación',   valorAntes: ant?.fecha_incorporacion,       valorDespues: n(fecha_incorporacion) },
+      { etiqueta: 'Fecha baja',            valorAntes: ant?.fecha_baja,                valorDespues: n(fecha_baja) },
+      { etiqueta: 'Motivo baja',           valorAntes: ant?.motivo_baja,               valorDespues: n(motivo_baja) },
+      { etiqueta: 'Fuente reclutamiento',  valorAntes: ant?.fuente_reclutamiento,      valorDespues: n(fuente_reclutamiento) },
+      { etiqueta: 'Referenciado por',      valorAntes: ant?.referenciado_por,          valorDespues: n(referenciado_por) },
     ];
 
     const cambios: any[] = [];
     for (const { etiqueta, valorAntes, valorDespues } of camposRastrear) {
-      if (String(valorAntes || '') !== String(valorDespues || '')) {
-        cambios.push([id, etiqueta, String(valorAntes || ''), String(valorDespues || '')]);
+      const antes = String(valorAntes || '').trim();
+      const despues = String(valorDespues || '').trim();
+      if (antes !== despues) {
+        cambios.push([id, etiqueta, antes, despues]);
       }
     }
 
