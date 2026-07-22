@@ -45,7 +45,38 @@ export const getHistorial = async (req: Request, res: Response): Promise<void> =
       ORDER BY h.fecha DESC
       LIMIT 50
     `);
-    res.json(rows);
+
+    // Resolver IDs a nombres para puesto, centro y estado
+    const [puestos]: any = await pool.query('SELECT id, descripcion FROM puesto');
+    const [centros]: any = await pool.query('SELECT id, nombre FROM centro');
+    const [estados]: any = await pool.query('SELECT id, estado FROM estado');
+
+    const mapaPuestos: any = {};
+    const mapaCentros: any = {};
+    const mapaEstados: any = {};
+    puestos.forEach((p: any) => mapaPuestos[p.id] = p.descripcion);
+    centros.forEach((c: any) => mapaCentros[c.id] = c.nombre);
+    estados.forEach((e: any) => mapaEstados[e.id] = e.estado);
+
+    const historial = (rows as any[]).map(h => {
+      let valorAntes = h.valor_antes;
+      let valorDespues = h.valor_despues;
+
+      if (h.campo === 'Puesto') {
+        valorAntes = mapaPuestos[h.valor_antes] || h.valor_antes;
+        valorDespues = mapaPuestos[h.valor_despues] || h.valor_despues;
+      } else if (h.campo === 'Centro') {
+        valorAntes = mapaCentros[h.valor_antes] || h.valor_antes;
+        valorDespues = mapaCentros[h.valor_despues] || h.valor_despues;
+      } else if (h.campo === 'Estado') {
+        valorAntes = mapaEstados[h.valor_antes] || h.valor_antes;
+        valorDespues = mapaEstados[h.valor_despues] || h.valor_despues;
+      }
+
+      return { ...h, valor_antes: valorAntes, valor_despues: valorDespues };
+    });
+
+    res.json(historial);
   } catch (error) {
     res.status(500).json({ error: 'Error al obtener historial' });
   }
