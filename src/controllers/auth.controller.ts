@@ -38,3 +38,21 @@ export const login = async (req: Request, res: Response): Promise<void> => {
     res.status(500).json({ error: 'Error al iniciar sesión' });
   }
 };
+export const refresh = async (req: Request, res: Response): Promise<void> => {
+  try {
+    const { token } = req.body;
+    if (!token) {
+      res.status(401).json({ error: 'Token requerido' });
+      return;
+    }
+    const decoded: any = jwt.verify(token, process.env.JWT_SECRET as string);
+    const nuevoToken = jwt.sign(
+      { id: decoded.id, nombre: decoded.nombre, tipo: decoded.tipo },
+      process.env.JWT_SECRET as string,
+      { expiresIn: '8h' }
+    );
+    res.json({ token: nuevoToken });
+  } catch (error) {
+    res.status(401).json({ error: 'Token inválido o expirado' });
+  }
+};
