@@ -217,6 +217,7 @@ export const updateContacto = async (req: Request, res: Response): Promise<void>
         id
       ]
     );
+    
 
    // Obtener datos anteriores completos desde la tabla directa (no la vista)
     const [anteriorDirecto]: any = await pool.query(
@@ -258,6 +259,8 @@ export const updateContacto = async (req: Request, res: Response): Promise<void>
         cambios.push([id, etiqueta, antes, despues]);
       }
     }
+    console.log('Campos anteriores:', ant);
+console.log('Cambios detectados:', cambios);
 
     if (cambios.length > 0) {
       await pool.query(
