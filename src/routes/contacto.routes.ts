@@ -2,7 +2,6 @@
 import { Router } from 'express';
 import { getContactos, getContactoById, createContacto, updateContacto, deleteContacto, getContactosIncorporados } from '../controllers/contacto.controller';
 import { verificarToken } from '../middleware/auth.middleware';
-import { getHistorial } from '../controllers/contacto.controller';
 
 
 // Crear variable router
@@ -18,6 +17,5 @@ router.get('/:id', verificarToken, getContactoById);
 router.post('/', verificarToken, createContacto);
 router.put('/:id', verificarToken, updateContacto);
 router.delete('/:id', verificarToken, deleteContacto);
-router.get('/historial/reciente', verificarToken, getHistorial);
 
 export default router;
