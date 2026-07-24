@@ -11,6 +11,7 @@ import tablasRoutes from './routes/tablas.routes';
 import authRoutes from './routes/auth.routes';
 import evaluacionRoutes from './routes/evaluacion.routes';
 import procesoRoutes from './routes/proceso.routes';
+import configuracionRoutes from './routes/configuracion.routes';
 
 // Carga las variables del archivo .env
 dotenv.config();
@@ -38,6 +39,7 @@ app.use('/api/tablas', tablasRoutes)
 app.use('/api/auth', authRoutes)
 app.use('/api/evaluaciones', evaluacionRoutes)
 app.use('/api/procesos', procesoRoutes)
+app.use('/api/configuracion', configuracionRoutes);
 
 // Arranca el servidor en el puerto definido en .env (por defecto 3000)
 const PORT = process.env.PORT || 3520;
